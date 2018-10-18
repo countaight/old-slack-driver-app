@@ -133,7 +133,8 @@ app.post('/sms', function (req, res) {
 								}
 							]
 						}
-					])
+					]),
+					image_url:req.body.MediaUrl0 || ''
 				})
 				.then(response => console.log(response))
 				.catch(console.error);
