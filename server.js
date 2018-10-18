@@ -69,7 +69,7 @@ app.get('/', function (req, res) {
 		+qs.stringify({
 			client_id: process.env.SLACK_CLIENT_ID,
 			team: process.env.SLACK_TEAM,
-			redirect_uri: 'https://f490bf6e.ngrok.io/auth',
+			redirect_uri: 'https://slack.noeltrans.com/auth',
 			scope: 'incoming-webhook chat:write:user'
 		})
 	);
@@ -263,7 +263,7 @@ function filterByPhone(phoneNo) {
 	return `{MobileNo} = '${formattedNo}'`;
 }
 
-const server = app.listen(3000, function () {
+const server = app.listen(process.env.PORT, function () {
 	const host = server.address().address;
 	const port = server.address().port;
 
