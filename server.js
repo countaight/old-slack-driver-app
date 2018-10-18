@@ -27,7 +27,7 @@ console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV !== 'production') {
 	mongoose.connect('mongodb://localhost/slack_users', { useNewUrlParser: true });
 } else {
-	mongoose.connect(process.env.MONGODB_URI + '/slack_users', { useNewUrlParser: true });
+	mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true });
 }
 
 const accountSid = process.env.TWILIO_ACCOUNTSID;
