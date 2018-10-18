@@ -71,7 +71,7 @@ app.get('/', function (req, res) {
 		+qs.stringify({
 			client_id: process.env.SLACK_CLIENT_ID,
 			team: process.env.SLACK_TEAM,
-			redirect_uri: 'https://slack.noeltrans.com/auth',
+			redirect_uri: 'http://slack.noeltrans.com/auth',
 			scope: 'incoming-webhook chat:write:user'
 		})
 	);
@@ -92,13 +92,12 @@ app.post('/sms', function (req, res) {
 			if (!convo) {
 				bot.chat.postMessage({
 					channel: '#dispatch',
-					username: name,
+					username: name || 'Unknown Name',
 					attachments: JSON.stringify([
 						{
 							"fallback": "SMS received through Twilio",
 							"color": "#4286F4",
 							"pretext": req.body.From,
-							"author_name": name || 'Unknown Number',
 							"title": "SMS from Driver",
 							"fields": [
 								{
@@ -125,7 +124,6 @@ app.post('/sms', function (req, res) {
 							"fallback": "SMS received through Twilio",
 							"color": "#4286F4",
 							"pretext": "SMS received",
-							"author_name": name || "Unknown Number",
 							"title": "SMS from Driver",
 							"fields": [
 								{
