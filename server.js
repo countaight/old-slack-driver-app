@@ -144,8 +144,8 @@ app.post('/sms', function (req, res) {
 		if (err) { console.error(err); return; }
 	});
 
-	res.writeHead(200);
-	res.end();
+	res.set('Content-Type': 'text/plain');
+	res.send('Message received');
 });
 
 app.post('/smssend', function(req, res) {
