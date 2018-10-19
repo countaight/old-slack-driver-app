@@ -86,7 +86,11 @@ app.post('/sms', function (req, res) {
 		filterByFormula: filterByPhone(req.body.From),
 		view: 'Grid view'
 	}).eachPage(function page(records, fetchNextPage) {
-		const name = records[0].fields.DriverName || records[0].fields.LessorName || 'Unknown Name';
+		if (records[0]) {
+			const name = records[0].fields.DriverName || records[0].fields.LessorName;
+		} else {
+			const name = 'Unknown Name';
+		}
 
 		query.exec(function (err, convo) {
 			if (!convo) {
