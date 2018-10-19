@@ -86,13 +86,13 @@ app.post('/sms', function (req, res) {
 		filterByFormula: filterByPhone(req.body.From),
 		view: 'Grid view'
 	}).eachPage(function page(records, fetchNextPage) {
-		const name = records[0].fields.DriverName || records[0].fields.LessorName;
+		const name = records[0].fields.DriverName || records[0].fields.LessorName || 'Unknown Name';
 
 		query.exec(function (err, convo) {
 			if (!convo) {
 				bot.chat.postMessage({
 					channel: '#dispatch',
-					username: name || 'Unknown Name',
+					username: name,
 					attachments: JSON.stringify([
 						{
 							"fallback": "SMS received through Twilio",
@@ -117,7 +117,7 @@ app.post('/sms', function (req, res) {
 			} else {
 				bot.chat.postMessage({
 					channel: '#dispatch',
-					username: name || 'Unknown Number',
+					username: name,
 					thread_ts: convo.thread_ts,
 					attachments: JSON.stringify([
 						{
