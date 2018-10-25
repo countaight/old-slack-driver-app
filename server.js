@@ -4,7 +4,6 @@ const { createEventAdapter } = require('@slack/events-api');
 const express = require('express');
 const mongoose = require('mongoose');
 const qs = require('querystring');
-const request = require('request');
 const { WebClient } = require('@slack/client');
 const twilio = require('twilio');
 require('dotenv').config();
@@ -21,8 +20,6 @@ const slackEvents = createEventAdapter(process.env.SLACK_SIGNING_SECRET, {
 });
 
 mongoose.Promise = global.Promise;
-
-console.log(process.env.NODE_ENV);
 
 if (process.env.NODE_ENV !== 'production') {
 	mongoose.connect('mongodb://localhost/slack_users', { useNewUrlParser: true });
@@ -43,7 +40,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 slackEvents.on('message', (message, body) => {
 	if (message.thread_ts && message.user) {
-		const query = Conversation.findOne({ thread_ts: message.thread_ts })
+		const query = Conversation.findOne({ thread_ts: message.thread_ts });
 
 		query.exec(function (err, convo) {
 			if (err) { console.error(err); return; }
@@ -86,10 +83,11 @@ app.post('/sms', function (req, res) {
 		filterByFormula: filterByPhone(req.body.From),
 		view: 'Grid view'
 	}).eachPage(function page(records, fetchNextPage) {
+		let name;
 		if (records[0]) {
-			const name = records[0].fields.DriverName || records[0].fields.LessorName;
+			name = records[0].fields.DriverName || records[0].fields.LessorName;
 		} else {
-			const name = 'Unknown Name';
+			name = 'Unknown Name';
 		}
 
 		query.exec(function (err, convo) {
@@ -235,20 +233,20 @@ app.post('/reply', function(req, res) {
 					as_user: true,
 					thread_ts: payload.state.split(' ')[0],
 					attachments: JSON.stringify([
-										{
-											"fallback": "SMS Replied Successful!",
-											"color": "#006838",
-											"pretext": "SMS Reply",
-											"title": "SMS sent from Slack",
-											"fields": [
-												{
-													"title": "Message",
-													"value": payload.submission.message_body,
-													"short": false
-												}
-											]
-										}
-					    		])
+						{
+							"fallback": "SMS Replied Successful!",
+							"color": "#006838",
+							"pretext": "SMS Reply",
+							"title": "SMS sent from Slack",
+							"fields": [
+								{
+									"title": "Message",
+									"value": payload.submission.message_body,
+									"short": false
+								}
+							]
+						}
+					])
 				})
 				.then(response => console.log('Chat message posted: ', response))
 				.catch(console.error)
