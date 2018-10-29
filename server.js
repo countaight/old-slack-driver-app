@@ -151,23 +151,69 @@ app.post('/sms', function (req, res) {
 });
 
 app.post('/smssend', function(req, res) {
+	console.log(req.body);
 	const number = req.body.text.split(" ")[0];
-	const msgBody = req.body.text.split(" ").slice(1).join(" ");
+	const msgBody = req.body.text.split(" ").slice(1).join(' ');
 
-	client.messages.create({
-		body: msgBody,
-		to: number,
-		from: process.env.TWILIO_NO
-	})
-	.then(message => {
-		res.writeHead(200, {
-			'Content-Type': 'application/json'
-		});
+	base('Driver').select({
+		filterByFormula: `{DriverFirstName} = '${number}'`,
+		view: 'Grid view'
+	}).eachPage(function page(records, fetchNextPage) {
+		if (records.length === 0) {
+			res.writeHead(200, { 'Content-Type': 'application/json' });
+			res.write(JSON.stringify({
+				response_type: 'ephemeral',
+				text: `No driver by the name of *${number}* was found, make sure you spelled it correctly and it is in the Airtable.`
+			}));
+			res.end();
+			return;
+		}
+
+		let foundRecords;
+
+		if (records.length > 1) {
+			foundRecords = records.map(record => {
+				return {
+					text: `Did you mean, ${record.fields.DriverName}`,
+					fallback: `Couldn't find a record with that name.`,
+					callback_id: 'choose_driver',
+					actions: [
+						{
+							name: 'driver',
+							value: record.fields.MobileNo,
+							text: record.fields.MobileNo,
+							type: 'button'
+						}
+					]
+				};
+			});
+		} else {
+			foundRecords = [
+				{
+					text: `Did you mean, ${records[0].fields.DriverName}`,
+					fallback: "Couldn't find a record with that name.",
+					callback_id: 'choose_driver',
+					actions: [
+						{
+							name: 'driver',
+							value: records[0].fields.MobileNo,
+							text: records[0].fields.MobileNo,
+							type: 'button'
+						}
+					]
+				}
+			];
+		}
+
+		res.writeHead(200, { 'Content-Type': 'application/json' });
 		res.write(JSON.stringify({
-			response_type: 'in_channel',
-			text: 'SMS Sent'
+			response_type: 'ephemeral',
+			text: `Send SMS to ${number}`,
+			attachments: foundRecords
 		}));
 		res.end();
+	}, function done(err) {
+		if (err) { console.error(err); return; }
 	});
 });
 
@@ -186,6 +232,8 @@ app.get('/auth',  function(req, res) {
 });
 
 app.post('/reply', function(req, res) {
+	const bot = new WebClient(process.env.SLACK_BOT_TOKEN);
+
 	const payload = JSON.parse(req.body.payload);
 	const slackMessage = payload.message;
 
@@ -234,17 +282,10 @@ app.post('/reply', function(req, res) {
 					thread_ts: payload.state.split(' ')[0],
 					attachments: JSON.stringify([
 						{
-							"fallback": "SMS Replied Successful!",
+							"fallback": "SMS Sent Successful!",
 							"color": "#006838",
-							"pretext": "SMS Reply",
+							"text": "SMS Sent",
 							"title": "SMS sent from Slack",
-							"fields": [
-								{
-									"title": "Message",
-									"value": payload.submission.message_body,
-									"short": false
-								}
-							]
 						}
 					])
 				})
@@ -254,11 +295,33 @@ app.post('/reply', function(req, res) {
 
 			res.writeHead(200);
 			res.end();
+		} else if (payload.callback_id === 'choose_driver') {
+			const mobile_no = formatPhone(payload.actions[0].value);
+
+			client.messages.create({
+				body: 'Dispatch would like to get a hold of you, please reply to this message.',
+				to: mobile_no,
+				from: process.env.TWILIO_NO
+			})
+			.then(message => {
+				res.writeHead(200, { 'Content-Type': 'application/json' });
+				res.write(JSON.stringify({
+					response_type: 'ephemeral',
+					text: 'SMS Sent!',
+					replace_original: true,
+					delete_original: true
+				}));
+				res.end();
+			});
 		} else {
 			console.log('This only works with Driver Messages');
 		}
 	}); //query.exec
 });
+
+function formatPhone(number) {
+	return '+1' + number.match(/\((\d{3})\) (\d{3})-(\d{4})/).slice(1,4).join('');
+}
 
 function filterByPhone(phoneNo) {
 	const short = phoneNo.slice(2).split('');
