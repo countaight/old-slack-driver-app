@@ -232,8 +232,6 @@ app.get('/auth',  function(req, res) {
 });
 
 app.post('/reply', function(req, res) {
-	const bot = new WebClient(process.env.SLACK_BOT_TOKEN);
-
 	const payload = JSON.parse(req.body.payload);
 	const slackMessage = payload.message;
 
