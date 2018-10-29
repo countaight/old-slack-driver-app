@@ -232,6 +232,8 @@ app.get('/auth',  function(req, res) {
 });
 
 app.post('/reply', function(req, res) {
+	const bot = new WebClient(process.env.SLACK_BOT_TOKEN);
+
 	const payload = JSON.parse(req.body.payload);
 	const slackMessage = payload.message;
 
@@ -280,17 +282,10 @@ app.post('/reply', function(req, res) {
 					thread_ts: payload.state.split(' ')[0],
 					attachments: JSON.stringify([
 						{
-							"fallback": "SMS Replied Successful!",
+							"fallback": "SMS Sent Successful!",
 							"color": "#006838",
-							"pretext": "SMS Reply",
+							"text": "SMS Sent",
 							"title": "SMS sent from Slack",
-							"fields": [
-								{
-									"title": "Message",
-									"value": payload.submission.message_body,
-									"short": false
-								}
-							]
 						}
 					])
 				})
@@ -309,10 +304,15 @@ app.post('/reply', function(req, res) {
 				from: process.env.TWILIO_NO
 			})
 			.then(message => {
-				console.log(message);
-				res.writeHead(204);
+				res.writeHead(200, { 'Content-Type': 'application/json' });
+				res.write(JSON.stringify({
+					response_type: 'ephemeral',
+					text: 'SMS Sent!',
+					replace_original: true,
+					delete_original: true
+				}));
 				res.end();
-			})
+			});
 		} else {
 			console.log('This only works with Driver Messages');
 		}
