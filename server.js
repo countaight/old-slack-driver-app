@@ -233,88 +233,28 @@ app.get('/auth',  function(req, res) {
 
 app.post('/reply', function(req, res) {
 	const payload = JSON.parse(req.body.payload);
-	const slackMessage = payload.message;
 
-	const query = User.findOne({ user_id: payload.user.id });
+	if (payload.callback_id === 'choose_driver') {
+		const mobile_no = formatPhone(payload.actions[0].value);
 
-	query.exec(function (err, user) {
-		if (err) { console.error(err); return; }
-
-		const web = new WebClient(user.apiToken);
-
-		if (slackMessage && payload.callback_id === 'reply_sms') {
-			console.log(slackMessage);
-			web.dialog.open({
-				trigger_id: payload.trigger_id,
-				dialog: JSON.stringify({
-					callback_id: 'reply_sms',
-					title: `${slackMessage.attachments[0].author_name}`,
-					submit_label: 'Reply',
-					notify_on_cancel: false,
-					state: payload.message_ts + ' ' + slackMessage.attachments[0].pretext,
-					elements: [
-						{
-							type: 'textarea',
-							label: 'Reply Message',
-							name: 'message_body',
-							placeholder: 'Type your message here.'
-						}
-					]
-				})
-			})
-			.then(response => {
-				res.writeHead(200);
-				res.end();
-			})
-			.catch(err => console.log(err.data));
-		} else if (payload.type === 'dialog_submission') {
-			client.messages.create({
-				body: payload.submission.message_body,
-				to: payload.state.split(' ')[1],
-				from: process.env.TWILIO_NO
-			})
-			.then(message => {
-				web.chat.postMessage({
-					channel: '#dispatch',
-					as_user: true,
-					thread_ts: payload.state.split(' ')[0],
-					attachments: JSON.stringify([
-						{
-							"fallback": "SMS Sent Successful!",
-							"color": "#006838",
-							"text": "SMS Sent",
-							"title": "SMS sent from Slack",
-						}
-					])
-				})
-				.then(response => console.log('Chat message posted: ', response))
-				.catch(console.error)
-			});
-
-			res.writeHead(200);
+		client.messages.create({
+			body: 'Dispatch would like to get a hold of you, please reply to this message.',
+			to: mobile_no,
+			from: process.env.TWILIO_NO
+		})
+		.then(message => {
+			res.writeHead(200, { 'Content-Type': 'application/json' });
+			res.write(JSON.stringify({
+				response_type: 'ephemeral',
+				text: 'SMS Sent!',
+				replace_original: true,
+				delete_original: true
+			}));
 			res.end();
-		} else if (payload.callback_id === 'choose_driver') {
-			const mobile_no = formatPhone(payload.actions[0].value);
-
-			client.messages.create({
-				body: 'Dispatch would like to get a hold of you, please reply to this message.',
-				to: mobile_no,
-				from: process.env.TWILIO_NO
-			})
-			.then(message => {
-				res.writeHead(200, { 'Content-Type': 'application/json' });
-				res.write(JSON.stringify({
-					response_type: 'ephemeral',
-					text: 'SMS Sent!',
-					replace_original: true,
-					delete_original: true
-				}));
-				res.end();
-			});
-		} else {
-			console.log('This only works with Driver Messages');
-		}
-	}); //query.exec
+		});
+	} else {
+		console.log('This only works with Driver Messages');
+	}
 });
 
 function formatPhone(number) {
